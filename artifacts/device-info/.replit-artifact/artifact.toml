@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "معلومات الأجهزة"
+version = "1.0.0"
+id = "artifacts/device-info"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20153
+
+[services.development]
+run = "pnpm --filter @workspace/device-info run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/device-info", "run", "build" ]
+publicDir = "artifacts/device-info/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20153"
+BASE_PATH = "/"

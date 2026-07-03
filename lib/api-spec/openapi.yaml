@@ -1,0 +1,330 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Device information lookup API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: devices
+    description: Device information lookup
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /devices/lookup:
+    post:
+      operationId: lookupDevice
+      tags: [devices]
+      summary: Look up device information
+      description: Returns detailed information about a phone or tablet by name or model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceLookupInput"
+      responses:
+        "200":
+          description: Device information found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceInfo"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /devices/evaluate-used:
+    post:
+      operationId: evaluateUsedDevice
+      tags: [devices]
+      summary: Evaluate a used device listing
+      description: Given reference device specs and the user-reported condition of a specific unit, returns a fair price estimate and deal rating
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsedDeviceEvaluationInput"
+      responses:
+        "200":
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsedDeviceEvaluation"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /devices/suggestions:
+    get:
+      operationId: getDeviceSuggestions
+      tags: [devices]
+      summary: Get popular device suggestions
+      description: Returns a list of popular devices for quick access
+      responses:
+        "200":
+          description: List of popular devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceSuggestion"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    DeviceLookupInput:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Device name or model number (e.g. "Samsung Galaxy S21", "iPhone 13 Pro", "Redmi Note 10")
+        language:
+          type: string
+          description: Language code for the response (e.g. "ar", "en", "fr", "tr"). Defaults to "ar".
+          default: "ar"
+    DeviceInfo:
+      type: object
+      required:
+        - name
+        - releaseDate
+        - os
+        - storage
+        - ram
+        - processorRating
+        - latestOfficialOs
+        - customRoms
+        - customRecoveries
+        - latestAndroidViaRom
+        - found
+      properties:
+        found:
+          type: boolean
+          description: Whether a matching device was found
+        name:
+          type: string
+          description: Full device name
+        brand:
+          type: ["string", "null"]
+          description: Device brand/manufacturer
+        releaseDate:
+          type: string
+          description: Official release date
+        os:
+          type: string
+          description: Operating system with UI skin (e.g. Android 11 + One UI 3.1)
+        storage:
+          type: string
+          description: Storage options (e.g. 128GB / 256GB)
+        ram:
+          type: string
+          description: RAM options (e.g. 6GB / 8GB)
+        processorRating:
+          type: integer
+          description: Processor performance rating from 1 to 10
+        processorName:
+          type: ["string", "null"]
+          description: Processor/chipset name
+        latestOfficialOs:
+          type: string
+          description: Latest official OS version from manufacturer
+        customRoms:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomRom"
+          description: Available custom ROMs
+        customRecoveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomRecovery"
+          description: Available custom recovery systems
+        latestAndroidViaRom:
+          type: string
+          description: Latest Android version achievable via custom ROMs
+        notes:
+          type: ["string", "null"]
+          description: Additional notes about the device
+    CustomRom:
+      type: object
+      required:
+        - name
+        - androidVersion
+        - status
+      properties:
+        name:
+          type: string
+          description: ROM name (e.g. LineageOS, PixelExperience)
+        androidVersion:
+          type: string
+          description: Android version this ROM is based on
+        status:
+          type: string
+          description: Status (e.g. Official, Unofficial, Discontinued)
+        maintainer:
+          type: ["string", "null"]
+          description: ROM maintainer name
+    CustomRecovery:
+      type: object
+      required:
+        - name
+        - isOfficial
+      properties:
+        name:
+          type: string
+          description: Recovery name (e.g. TWRP, OrangeFox, SHRP)
+        isOfficial:
+          type: boolean
+          description: Whether it is an official build or a port
+        notes:
+          type: ["string", "null"]
+          description: Additional notes about this recovery
+    DeviceSuggestion:
+      type: object
+      required:
+        - name
+        - brand
+      properties:
+        name:
+          type: string
+        brand:
+          type: string
+    UsedDeviceEvaluationInput:
+      type: object
+      required:
+        - deviceName
+        - condition
+        - storage
+        - ram
+      properties:
+        deviceName:
+          type: string
+          description: Full device name as returned from lookup
+        language:
+          type: string
+          description: Language code (ar, en, fr, tr)
+          default: "ar"
+        condition:
+          type: string
+          description: Overall condition (excellent / very_good / good / acceptable / poor)
+        storage:
+          type: string
+          description: Storage variant of the unit (e.g. 128GB)
+        ram:
+          type: string
+          description: RAM variant of the unit (e.g. 6GB)
+        screenCondition:
+          type: string
+          description: Screen condition (perfect / scratches / cracked / replaced)
+        batteryHealth:
+          type: ["integer", "null"]
+          description: Battery health percentage if known (e.g. 85)
+        isLocked:
+          type: boolean
+          description: Whether the device is carrier/SIM locked
+        defects:
+          type: ["string", "null"]
+          description: Any known defects or issues described by the user
+        askingPrice:
+          type: ["number", "null"]
+          description: Price the seller is asking (in local currency)
+        currency:
+          type: ["string", "null"]
+          description: Currency code (e.g. USD, DZD, SAR, EUR)
+    UsedDeviceEvaluation:
+      type: object
+      required:
+        - fairPriceMin
+        - fairPriceMax
+        - currency
+        - dealRating
+        - dealRatingLabel
+        - score
+        - verdict
+        - strengths
+        - weaknesses
+        - negotiationTips
+        - checklistBeforeBuying
+      properties:
+        fairPriceMin:
+          type: number
+          description: Lower bound of fair market price
+        fairPriceMax:
+          type: number
+          description: Upper bound of fair market price
+        currency:
+          type: string
+          description: Currency used for the price estimate
+        dealRating:
+          type: string
+          description: excellent / good / fair / overpriced
+        dealRatingLabel:
+          type: string
+          description: Localized deal rating label
+        score:
+          type: integer
+          description: Overall condition score 1-10
+        verdict:
+          type: string
+          description: Short summary verdict about this deal
+        strengths:
+          type: array
+          items:
+            type: string
+          description: Positive aspects of this unit
+        weaknesses:
+          type: array
+          items:
+            type: string
+          description: Negative aspects or risks
+        negotiationTips:
+          type: array
+          items:
+            type: string
+          description: Tips for negotiating a better price
+        checklistBeforeBuying:
+          type: array
+          items:
+            type: string
+          description: Things to verify before finalizing the purchase
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
